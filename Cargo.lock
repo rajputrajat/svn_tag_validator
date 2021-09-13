@@ -643,6 +643,7 @@ dependencies = [
 [[package]]
 name = "svn-cmd"
 version = "0.1.0"
+source = "git+https://github.com/rajputrajat/svn-cmd.git#d37eba7ccbefbd3ac80d1992f1cda60d6e939f4e"
 dependencies = [
  "async-std",
  "chrono",
