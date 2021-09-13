@@ -29,9 +29,12 @@ async fn process_tag(path: &str) -> Result<()> {
         let dir_path = format!("{}/{}", path, e.name);
         let cmd = format!("propget svn:externals {}", dir_path);
         let svn_clone = svn.clone();
-        tasks.push(task::spawn(
-            async move { svn_clone.raw_cmd(cmd).await.unwrap() },
-        ));
+        tasks.push(task::spawn(async move {
+            svn_clone
+                .raw_cmd(cmd)
+                .await
+                .unwrap_or_else(|_| "".to_owned())
+        }));
     }
     task::block_on(async {
         for t in tasks {
