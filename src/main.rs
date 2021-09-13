@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use async_std::path::Path;
 use log::{info, trace};
 use std::env;
@@ -22,20 +22,29 @@ async fn process_tag(path: &str) -> Result<()> {
         None,
     )?;
     let list = svn.list(path, true).await?;
-    list.filter(|e| e.kind == PathType::Dir)
-        .try_for_each(|e| -> Result<()> {
+    let mut path_list: Vec<String> = Vec::new();
+    list.filter(|e| e.kind == PathType::Dir).for_each(|e| {
+        let _ = async {
             let dir_path = Path::new(path).join(e.name);
-            let dir_path = dir_path
-                .to_str()
-                .ok_or_else(|| anyhow!("couldn't join paths"))?;
-            async {
-                let out = svn
-                    .raw_cmd(&format!("propget svn:externals {}", dir_path))
-                    .await
-                    .unwrap_or("".to_owned());
-            }
-            .await;
-            Ok(())
-        })?;
+            let dir_path = dir_path.to_str().unwrap();
+            let out = svn
+                .raw_cmd(&format!("propget svn:externals {}", dir_path))
+                .await
+                .unwrap_or_else(|_| "".to_owned());
+            path_list.extend_from_slice(
+                &out.split_whitespace()
+                    .filter(|&s| !s.is_empty())
+                    .filter_map(|s| {
+                        if s.contains("tags") {
+                            None
+                        } else {
+                            Some(s.to_owned())
+                        }
+                    })
+                    .collect::<Vec<_>>(),
+            );
+        };
+    });
+    info!("paths: {:#?}", path_list);
     Ok(())
 }
