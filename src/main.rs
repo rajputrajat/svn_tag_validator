@@ -29,18 +29,21 @@ async fn process_tag(path: &str) -> Result<()> {
                 .raw_cmd(&format!("propget svn:externals {}", dir_path))
                 .await
                 .unwrap_or_else(|_| "".to_owned());
-            path_list.extend_from_slice(
-                &out.split_whitespace()
-                    .filter(|&s| !s.is_empty())
-                    .filter_map(|s| {
-                        if s.contains("tags") {
-                            None
-                        } else {
-                            Some(s.to_owned())
-                        }
-                    })
-                    .collect::<Vec<_>>(),
-            );
+            let new_non_tags = out
+                .split_whitespace()
+                .filter(|&s| !s.is_empty())
+                .filter_map(|s| {
+                    if s.contains("tags") {
+                        None
+                    } else {
+                        Some(s.to_owned())
+                    }
+                })
+                .collect::<Vec<_>>();
+            if !new_non_tags.is_empty() {
+                info!("Non tags external items: {:#?}", new_non_tags);
+            }
+            path_list.extend_from_slice(&new_non_tags);
         }
         .await;
     }
