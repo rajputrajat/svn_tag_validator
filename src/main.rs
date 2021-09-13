@@ -23,29 +23,26 @@ async fn process_tag(path: &str) -> Result<()> {
     let list = svn.list(path, true).await?;
     let mut path_list: Vec<String> = Vec::new();
     for e in list.filter(|e| e.kind == PathType::Dir) {
-        let _ = async {
-            let dir_path = format!("{}/{}", path, e.name);
-            let out = svn
-                .raw_cmd(&format!("propget svn:externals {}", dir_path))
-                .await
-                .unwrap_or_else(|_| "".to_owned());
-            let new_non_tags = out
-                .split_whitespace()
-                .filter(|&s| !s.is_empty())
-                .filter_map(|s| {
-                    if s.contains("tags") {
-                        None
-                    } else {
-                        Some(s.to_owned())
-                    }
-                })
-                .collect::<Vec<_>>();
-            if !new_non_tags.is_empty() {
-                info!("Non tags external items: {:#?}", new_non_tags);
-            }
-            path_list.extend_from_slice(&new_non_tags);
+        let dir_path = format!("{}/{}", path, e.name);
+        let out = svn
+            .raw_cmd(&format!("propget svn:externals {}", dir_path))
+            .await
+            .unwrap_or_else(|_| "".to_owned());
+        let new_non_tags = out
+            .split_whitespace()
+            .filter(|&s| !s.is_empty())
+            .filter_map(|s| {
+                if s.contains("tags") {
+                    None
+                } else {
+                    Some(s.to_owned())
+                }
+            })
+            .collect::<Vec<_>>();
+        if !new_non_tags.is_empty() {
+            info!("Non tags external items: {:#?}", new_non_tags);
         }
-        .await;
+        path_list.extend_from_slice(&new_non_tags);
     }
     info!("paths: {:#?}", path_list);
     Ok(())
