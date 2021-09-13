@@ -1,5 +1,4 @@
 use anyhow::Result;
-use async_std::path::Path;
 use log::{info, trace};
 use std::env;
 use svn_cmd::{Credentials, PathType, SvnCmd};
@@ -23,10 +22,9 @@ async fn process_tag(path: &str) -> Result<()> {
     )?;
     let list = svn.list(path, true).await?;
     let mut path_list: Vec<String> = Vec::new();
-    list.filter(|e| e.kind == PathType::Dir).for_each(|e| {
+    for e in list.filter(|e| e.kind == PathType::Dir) {
         let _ = async {
-            let dir_path = Path::new(path).join(e.name);
-            let dir_path = dir_path.to_str().unwrap();
+            let dir_path = format!("{}/{}", path, e.name);
             let out = svn
                 .raw_cmd(&format!("propget svn:externals {}", dir_path))
                 .await
@@ -43,8 +41,9 @@ async fn process_tag(path: &str) -> Result<()> {
                     })
                     .collect::<Vec<_>>(),
             );
-        };
-    });
+        }
+        .await;
+    }
     info!("paths: {:#?}", path_list);
     Ok(())
 }
