@@ -13,6 +13,7 @@ async fn main() -> Result<()> {
 }
 
 async fn process_tag(path: &str) -> Result<()> {
+    info!("Inspecting SVN path: {:#?}", path);
     let svn = SvnCmd::new(
         Credentials {
             username: "svc-p-blsrobo".to_owned(),
