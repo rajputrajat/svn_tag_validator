@@ -10,5 +10,4 @@ anyhow = "1.0.44"
 async-std = { version = "1.10.0", features = ["attributes"] }
 env_logger = "0.9.0"
 log = "0.4.14"
-#svn-cmd = { git = "https://github.com/rajputrajat/svn-cmd.git" }
-svn-cmd = {path = "C:/Users/rajput/R/learn/rust/svn-cmd"}
+svn-cmd = { git = "https://github.com/rajputrajat/svn-cmd.git" }
