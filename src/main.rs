@@ -1,19 +1,20 @@
 use anyhow::Result;
 use async_std::task;
 use log::trace;
-use std::{collections::HashMap, env};
+use std::{collections::HashMap, env, time::Instant};
 use svn_cmd::{Credentials, PathType, SvnCmd, SvnList};
 
 #[async_std::main]
 async fn main() -> Result<()> {
     env_logger::init();
+    let start = Instant::now();
     let args: Vec<_> = env::args().skip(1).collect();
     let path = args.get(0).expect("arg not given");
     trace!("check info of path: {:?}", &path);
-    process_tag(path).await
+    process_tag(path, &start).await
 }
 
-async fn process_tag(path: &str) -> Result<()> {
+async fn process_tag(path: &str, start_instance: &Instant) -> Result<()> {
     println!("Inspecting SVN path: {:#?}", path);
     let svn = SvnCmd::new(
         Credentials {
@@ -23,6 +24,10 @@ async fn process_tag(path: &str) -> Result<()> {
         None,
     )?;
     let list = svn.list(path, true).await?;
+    println!(
+        "SvnList data received in '{}' msec.",
+        start_instance.elapsed().as_millis()
+    );
     trace!("{:?}", list);
     let mut path_list: Vec<(String, Vec<String>)> = Vec::new();
     let mut tasks = Vec::new();
@@ -69,6 +74,10 @@ async fn process_tag(path: &str) -> Result<()> {
             path_list.push((key, new_non_tags));
         }
     });
+    println!(
+        "Completed in '{}' msec.",
+        start_instance.elapsed().as_millis()
+    );
     Ok(())
 }
 
