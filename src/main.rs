@@ -133,14 +133,19 @@ fn find_valid_tag_name(path: &str) -> Option<String> {
     let path_split: Vec<&str> = path.split('/').collect();
     let path_split_len = path_split.len();
     path_split.iter().enumerate().find_map(|(ipsp, &sp)| {
-        if (sp == "tags") && (path_split_len >= (ipsp + 1)) {
-            Some(
-                path_split
-                    .iter()
-                    .enumerate()
-                    .filter_map(|(i, &s)| if i <= ipsp { Some(s.to_owned()) } else { None })
-                    .collect(),
-            )
+        if (sp == "tags") && (path_split_len >= ipsp) {
+            let final_tag: String = path_split
+                .iter()
+                .enumerate()
+                .filter_map(|(i, &s)| {
+                    if ipsp > i {
+                        Some(format!("{}/", s))
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            Some(final_tag.strip_suffix('/').unwrap().to_owned())
         } else {
             None
         }
@@ -164,8 +169,8 @@ mod tests {
     #[test]
     fn get_valid_tag_name() {
         assert_eq!(
-            find_valid_tag_name("hello/there/how/tag/r/u"),
-            Some("Hello/there/how/tag/r".to_owned())
+            find_valid_tag_name("hello/there/how/tags/r/u"),
+            Some("hello/there/how/tags/r".to_owned())
         );
     }
 }
