@@ -23,27 +23,30 @@ async fn process_tag(path: &str) -> Result<()> {
         None,
     )?;
     let list = svn.list(path, true).await?;
-    let mut path_list: Vec<String> = Vec::new();
+    let mut path_list: Vec<(String, Vec<String>)> = Vec::new();
     let mut tasks = Vec::new();
 
-    for v in get_tags_map(&list, path).values() {
+    let tag_indices_map = Box::leak(Box::new(get_tags_map(&list, path)));
+    for (k, v) in tag_indices_map.iter() {
         for entry in v.iter().map(|&i| list.iter().nth(i).unwrap()) {
-            info!("{:?}", entry);
             let dir_path = format!("{}/{}", path, entry.name);
             let cmd = format!("propget svn:externals {}", dir_path);
             let svn_clone = svn.clone();
             tasks.push(task::spawn(async move {
-                svn_clone
-                    .raw_cmd(cmd)
-                    .await
-                    .unwrap_or_else(|_| "".to_owned())
+                (
+                    k.to_owned(),
+                    svn_clone
+                        .raw_cmd(cmd)
+                        .await
+                        .unwrap_or_else(|_| "".to_owned()),
+                )
             }));
         }
     }
 
     task::block_on(async {
         for t in tasks {
-            let out = t.await;
+            let (key, out) = t.await;
             let new_non_tags = out
                 .split_whitespace()
                 .filter(|&s| !s.is_empty())
@@ -56,12 +59,14 @@ async fn process_tag(path: &str) -> Result<()> {
                 })
                 .collect::<Vec<_>>();
             if !new_non_tags.is_empty() {
-                info!("Non tags external items: {:#?}", new_non_tags);
+                info!(
+                    "Non tags external items for path ('{}'): {:#?}",
+                    key, new_non_tags
+                );
             }
-            path_list.extend_from_slice(&new_non_tags);
+            path_list.push((key, new_non_tags));
         }
     });
-    info!("paths: {:#?}", path_list);
     Ok(())
 }
 
@@ -69,7 +74,6 @@ fn get_tags_map(svn_list: &SvnList, path: &str) -> HashMap<String, Vec<usize>> {
     let mut tag_indices_map: HashMap<String, Vec<usize>> = HashMap::new();
     svn_list
         .iter()
-        .inspect(|e| info!("{:?}", e))
         .enumerate()
         .filter_map(|(i, e)| {
             if e.kind == PathType::Dir {
