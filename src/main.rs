@@ -101,14 +101,17 @@ fn get_tags_map(svn_list: &SvnList, path: &str) -> HashMap<String, Vec<usize>> {
                     tag_indices_map.insert(p.clone(), vec![]);
                 }
             });
-            let key = tag_indices_map
+            let keys = tag_indices_map
                 .keys()
-                .inspect(|k| info!("look for '{}' in '{}'", k, p))
-                .find(|&k| p.contains(k))
-                .expect("svn-path key wasn't found in map")
-                .clone();
-            if let Some(v) = tag_indices_map.get_mut(&key) {
-                v.push(i);
+                .map(|s| s.to_owned())
+                .collect::<Vec<_>>();
+            for key in keys {
+                trace!("check if svn-path '{}' can be placed in '{}'", p, &key);
+                if p.contains(&key) {
+                    if let Some(v) = tag_indices_map.get_mut(&key) {
+                        v.push(i);
+                    }
+                }
             }
         });
     tag_indices_map
