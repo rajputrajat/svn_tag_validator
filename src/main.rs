@@ -1,6 +1,6 @@
 use anyhow::Result;
 use async_std::task;
-use log::{info, trace};
+use log::trace;
 use std::{collections::HashMap, env};
 use svn_cmd::{Credentials, PathType, SvnCmd, SvnList};
 
@@ -14,7 +14,7 @@ async fn main() -> Result<()> {
 }
 
 async fn process_tag(path: &str) -> Result<()> {
-    info!("Inspecting SVN path: {:#?}", path);
+    println!("Inspecting SVN path: {:#?}", path);
     let svn = SvnCmd::new(
         Credentials {
             username: "svc-p-blsrobo".to_owned(),
@@ -23,10 +23,12 @@ async fn process_tag(path: &str) -> Result<()> {
         None,
     )?;
     let list = svn.list(path, true).await?;
+    trace!("{:?}", list);
     let mut path_list: Vec<(String, Vec<String>)> = Vec::new();
     let mut tasks = Vec::new();
 
     let tag_indices_map = Box::leak(Box::new(get_tags_map(&list, path)));
+    trace!("{:?}", tag_indices_map);
     for (k, v) in tag_indices_map.iter() {
         for entry in v.iter().map(|&i| list.iter().nth(i).unwrap()) {
             let dir_path = format!("{}/{}", path, entry.name);
@@ -59,7 +61,7 @@ async fn process_tag(path: &str) -> Result<()> {
                 })
                 .collect::<Vec<_>>();
             if !new_non_tags.is_empty() {
-                info!(
+                println!(
                     "Non tags external items for path ('{}'): {:#?}",
                     key, new_non_tags
                 );
