@@ -106,12 +106,9 @@ fn get_tags_map(svn_list: &SvnList, path: &str) -> HashMap<String, Vec<usize>> {
         })
         .filter(|(_i, p)| p.contains("tags"))
         .for_each(|(i, p)| {
-            let path_split: Vec<&str> = p.split('/').collect();
-            path_split.iter().enumerate().for_each(|(j, &s)| {
-                if (s == "tags") && (j == (path_split.len() - 2)) {
-                    tag_indices_map.insert(p.clone(), vec![]);
-                }
-            });
+            if let Some(valid_tag) = find_valid_tag_name(&p) {
+                tag_indices_map.insert(valid_tag, vec![]);
+            }
             let keys = tag_indices_map
                 .keys()
                 .map(|s| s.to_owned())
@@ -132,6 +129,28 @@ fn remove_last_slash(input_str: &str) -> String {
     input_str.strip_suffix('/').unwrap_or(input_str).to_owned()
 }
 
+fn find_valid_tag_name(path: &str) -> Option<String> {
+    let path_split: Vec<&str> = path.split('/').collect();
+    let path_split_len = path_split.len();
+    if let Some(ind) = path_split.iter().enumerate().find_map(|(ipsp, &sp)| {
+        if (sp == "tags") && (path_split_len >= (ipsp + 1)) {
+            Some(ipsp)
+        } else {
+            None
+        }
+    }) {
+        Some(
+            path_split
+                .iter()
+                .enumerate()
+                .filter_map(|(i, &s)| if i <= ind { Some(s.to_owned()) } else { None })
+                .collect(),
+        )
+    } else {
+        None
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -144,5 +163,13 @@ mod tests {
     #[test]
     fn check_last_slash_removed_not() {
         assert_eq!(remove_last_slash("hello/there"), "hello/there".to_owned());
+    }
+
+    #[test]
+    fn get_valid_tag_name() {
+        assert_eq!(
+            find_valid_tag_name("hello/there/how/tag/r/u"),
+            Some("Hello/there/how/tag/r".to_owned())
+        );
     }
 }
