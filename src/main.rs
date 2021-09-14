@@ -25,7 +25,7 @@ async fn process_tag(path: &str) -> Result<()> {
     let list = svn.list(path, true).await?;
     let mut path_list: Vec<String> = Vec::new();
     let mut tasks = Vec::new();
-    for e in list.filter(|e| e.kind == PathType::Dir) {
+    for e in list.iter().filter(|e| e.kind == PathType::Dir) {
         let dir_path = format!("{}/{}", path, e.name);
         let cmd = format!("propget svn:externals {}", dir_path);
         let svn_clone = svn.clone();
@@ -63,6 +63,7 @@ async fn process_tag(path: &str) -> Result<()> {
 fn get_tags_map(svn_list: &SvnList, path: &str) -> HashMap<String, Vec<usize>> {
     let mut tag_indices_map: HashMap<String, Vec<usize>> = HashMap::new();
     svn_list
+        .iter()
         .enumerate()
         .filter_map(|(i, e)| {
             if e.kind == PathType::Dir {
