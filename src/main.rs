@@ -36,22 +36,23 @@ async fn process_tag(path: &str, start_instance: &Instant) -> Result<()> {
     let tag_indices_map = { get_tags_map(&list, &path) };
     trace!("{:?}", tag_indices_map);
     for (k, v) in tag_indices_map.into_iter() {
-        let author = &list
-            .iter()
-            .find(|e| k == format!("{}/{}", &path, e.name))
-            .unwrap()
-            .commit
-            .author;
+        let author = {
+            let le = &list
+                .iter()
+                .find(|e| k == format!("{}/{}", &path, e.name))
+                .unwrap();
+            le.commit.author.to_owned()
+        };
         for entry in v.iter().map(|&i| list.iter().nth(i).unwrap()) {
             let k = k.clone();
-            let extra_info = format!("extra_info: '{:?}'", entry);
+            let author = author.clone();
             let dir_path = format!("{}/{}", path, entry.name);
             let cmd = format!("propget svn:externals {}", dir_path);
             let svn_clone = svn.clone();
             tasks.push(task::spawn(async move {
                 (
                     k,
-                    extra_info,
+                    author,
                     svn_clone
                         .raw_cmd(cmd)
                         .await
@@ -63,7 +64,7 @@ async fn process_tag(path: &str, start_instance: &Instant) -> Result<()> {
 
     task::block_on(async {
         for t in tasks {
-            let (key, extra_info, out) = t.await;
+            let (key, author, out) = t.await;
             let new_non_tags = out
                 .split(&['\n', '\r'][..])
                 .filter(|&s| !s.is_empty())
@@ -78,7 +79,7 @@ async fn process_tag(path: &str, start_instance: &Instant) -> Result<()> {
             if !new_non_tags.is_empty() {
                 println!(
                     "Non tags externals for '{}', {}: {:#?}",
-                    key, extra_info, new_non_tags
+                    key, author, new_non_tags
                 );
             }
             path_list.push((key, new_non_tags));
