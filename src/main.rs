@@ -28,6 +28,7 @@ async fn process_tag(path: &str) -> Result<()> {
 
     for v in get_tags_map(&list, path).values() {
         for entry in v.iter().map(|&i| list.iter().nth(i).unwrap()) {
+            info!("{:?}", entry);
             let dir_path = format!("{}/{}", path, entry.name);
             let cmd = format!("propget svn:externals {}", dir_path);
             let svn_clone = svn.clone();
@@ -68,6 +69,7 @@ fn get_tags_map(svn_list: &SvnList, path: &str) -> HashMap<String, Vec<usize>> {
     let mut tag_indices_map: HashMap<String, Vec<usize>> = HashMap::new();
     svn_list
         .iter()
+        .inspect(|e| info!("{:?}", e))
         .enumerate()
         .filter_map(|(i, e)| {
             if e.kind == PathType::Dir {
@@ -78,20 +80,20 @@ fn get_tags_map(svn_list: &SvnList, path: &str) -> HashMap<String, Vec<usize>> {
         })
         .filter(|(_i, p)| p.contains("tags"))
         .for_each(|(i, p)| {
-            p.split('/').enumerate().for_each(|(j, s)| {
-                if (s == "tags") && (j == (p.len() - 2)) {
-                    tag_indices_map.insert(p.clone(), vec![i]);
-                } else {
-                    let key = tag_indices_map
-                        .keys()
-                        .find(|&k| p.contains(k))
-                        .unwrap()
-                        .clone();
-                    if let Some(v) = tag_indices_map.get_mut(&key) {
-                        v.push(i);
-                    }
+            let path_split: Vec<&str> = p.split('/').collect();
+            path_split.iter().enumerate().for_each(|(j, &s)| {
+                if (s == "tags") && (j == (path_split.len() - 2)) {
+                    tag_indices_map.insert(p.clone(), vec![]);
                 }
             });
+            let key = tag_indices_map
+                .keys()
+                .find(|&k| p.contains(k))
+                .unwrap()
+                .clone();
+            if let Some(v) = tag_indices_map.get_mut(&key) {
+                v.push(i);
+            }
         });
     tag_indices_map
 }
