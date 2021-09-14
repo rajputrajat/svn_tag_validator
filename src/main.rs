@@ -32,16 +32,19 @@ async fn process_tag(path: &str, start_instance: &Instant) -> Result<()> {
     let mut path_list: Vec<(String, Vec<String>)> = Vec::new();
     let mut tasks = Vec::new();
 
-    let tag_indices_map = Box::leak(Box::new(get_tags_map(&list, path)));
+    let tag_indices_map = { get_tags_map(&list, path) };
     trace!("{:?}", tag_indices_map);
-    for (k, v) in tag_indices_map.iter() {
+    for (k, v) in tag_indices_map.into_iter() {
         for entry in v.iter().map(|&i| list.iter().nth(i).unwrap()) {
+            let k = k.clone();
+            let extra_info = format!("extra_info: '{:?}'", entry);
             let dir_path = format!("{}/{}", path, entry.name);
             let cmd = format!("propget svn:externals {}", dir_path);
             let svn_clone = svn.clone();
             tasks.push(task::spawn(async move {
                 (
-                    k.to_owned(),
+                    k,
+                    extra_info,
                     svn_clone
                         .raw_cmd(cmd)
                         .await
@@ -53,7 +56,7 @@ async fn process_tag(path: &str, start_instance: &Instant) -> Result<()> {
 
     task::block_on(async {
         for t in tasks {
-            let (key, out) = t.await;
+            let (key, extra_info, out) = t.await;
             let new_non_tags = out
                 .split_whitespace()
                 .filter(|&s| !s.is_empty())
@@ -67,8 +70,8 @@ async fn process_tag(path: &str, start_instance: &Instant) -> Result<()> {
                 .collect::<Vec<_>>();
             if !new_non_tags.is_empty() {
                 println!(
-                    "Non tags external items for path ('{}'): {:#?}",
-                    key, new_non_tags
+                    "Non tags externals for '{}', {}: {:#?}",
+                    key, extra_info, new_non_tags
                 );
             }
             path_list.push((key, new_non_tags));
