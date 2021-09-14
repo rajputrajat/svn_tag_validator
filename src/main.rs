@@ -1,6 +1,6 @@
 use anyhow::Result;
 use async_std::task;
-use log::trace;
+use log::{info, trace};
 use std::{collections::HashMap, env, time::Instant};
 use svn_cmd::{Credentials, PathType, SvnCmd, SvnList};
 
@@ -103,7 +103,7 @@ fn get_tags_map(svn_list: &SvnList, path: &str) -> HashMap<String, Vec<usize>> {
             });
             let key = tag_indices_map
                 .keys()
-                .inspect(|k| trace!("look for '{}' in '{}'", k, p))
+                .inspect(|k| info!("look for '{}' in '{}'", k, p))
                 .find(|&k| p.contains(k))
                 .expect("svn-path key wasn't found in map")
                 .clone();
