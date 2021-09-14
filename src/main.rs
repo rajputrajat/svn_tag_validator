@@ -58,7 +58,7 @@ async fn process_tag(path: &str, start_instance: &Instant) -> Result<()> {
         for t in tasks {
             let (key, extra_info, out) = t.await;
             let new_non_tags = out
-                .split_whitespace()
+                .split(&['\n', '\r'][..])
                 .filter(|&s| !s.is_empty())
                 .filter_map(|s| {
                     if s.contains("tags") {
