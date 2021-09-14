@@ -128,11 +128,7 @@ fn get_tags_map(svn_list: &SvnList, path: &str) -> HashMap<String, Vec<usize>> {
 }
 
 fn remove_last_slash(input_str: &str) -> String {
-    if input_str.chars().last() == Some('/') {
-        input_str[..input_str.len() - 1].to_owned()
-    } else {
-        input_str.to_owned()
-    }
+    input_str.strip_suffix('/').unwrap_or(input_str).to_owned()
 }
 
 #[cfg(test)]
