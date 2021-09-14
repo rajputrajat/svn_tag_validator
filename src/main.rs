@@ -1,6 +1,6 @@
 use anyhow::Result;
 use async_std::task;
-use log::{info, trace};
+use log::trace;
 use std::{collections::HashMap, env, time::Instant};
 use svn_cmd::{Credentials, PathType, SvnCmd, SvnList};
 
