@@ -132,23 +132,19 @@ fn remove_last_slash(input_str: &str) -> String {
 fn find_valid_tag_name(path: &str) -> Option<String> {
     let path_split: Vec<&str> = path.split('/').collect();
     let path_split_len = path_split.len();
-    if let Some(ind) = path_split.iter().enumerate().find_map(|(ipsp, &sp)| {
+    path_split.iter().enumerate().find_map(|(ipsp, &sp)| {
         if (sp == "tags") && (path_split_len >= (ipsp + 1)) {
-            Some(ipsp)
+            Some(
+                path_split
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(i, &s)| if i <= ipsp { Some(s.to_owned()) } else { None })
+                    .collect(),
+            )
         } else {
             None
         }
-    }) {
-        Some(
-            path_split
-                .iter()
-                .enumerate()
-                .filter_map(|(i, &s)| if i <= ind { Some(s.to_owned()) } else { None })
-                .collect(),
-        )
-    } else {
-        None
-    }
+    })
 }
 
 #[cfg(test)]
