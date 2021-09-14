@@ -25,17 +25,21 @@ async fn process_tag(path: &str) -> Result<()> {
     let list = svn.list(path, true).await?;
     let mut path_list: Vec<String> = Vec::new();
     let mut tasks = Vec::new();
-    for e in list.iter().filter(|e| e.kind == PathType::Dir) {
-        let dir_path = format!("{}/{}", path, e.name);
-        let cmd = format!("propget svn:externals {}", dir_path);
-        let svn_clone = svn.clone();
-        tasks.push(task::spawn(async move {
-            svn_clone
-                .raw_cmd(cmd)
-                .await
-                .unwrap_or_else(|_| "".to_owned())
-        }));
+
+    for v in get_tags_map(&list, path).values() {
+        for entry in v.iter().map(|&i| list.iter().nth(i).unwrap()) {
+            let dir_path = format!("{}/{}", path, entry.name);
+            let cmd = format!("propget svn:externals {}", dir_path);
+            let svn_clone = svn.clone();
+            tasks.push(task::spawn(async move {
+                svn_clone
+                    .raw_cmd(cmd)
+                    .await
+                    .unwrap_or_else(|_| "".to_owned())
+            }));
+        }
     }
+
     task::block_on(async {
         for t in tasks {
             let out = t.await;
