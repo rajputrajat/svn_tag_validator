@@ -103,8 +103,9 @@ fn get_tags_map(svn_list: &SvnList, path: &str) -> HashMap<String, Vec<usize>> {
             });
             let key = tag_indices_map
                 .keys()
+                .inspect(|k| trace!("look for '{}' in '{}'", k, p))
                 .find(|&k| p.contains(k))
-                .unwrap()
+                .expect("svn-path key wasn't found in map")
                 .clone();
             if let Some(v) = tag_indices_map.get_mut(&key) {
                 v.push(i);
