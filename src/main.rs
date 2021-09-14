@@ -107,7 +107,7 @@ fn get_tags_map(svn_list: &SvnList, path: &str) -> HashMap<String, Vec<usize>> {
         .filter(|(_i, p)| p.contains("tags"))
         .for_each(|(i, p)| {
             if let Some(valid_tag) = find_valid_tag_name(&p) {
-                tag_indices_map.insert(valid_tag, vec![]);
+                tag_indices_map.entry(valid_tag).or_insert_with(Vec::new);
             }
             let keys = tag_indices_map
                 .keys()
