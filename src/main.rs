@@ -23,7 +23,8 @@ async fn process_tag(path: &str, start_instance: &Instant) -> Result<()> {
         },
         None,
     )?;
-    let list = svn.list(path, true).await?;
+    let path = remove_last_slash(path);
+    let list = svn.list(&path, true).await?;
     println!(
         "SvnList data received in '{}' msec.",
         start_instance.elapsed().as_millis()
@@ -32,9 +33,15 @@ async fn process_tag(path: &str, start_instance: &Instant) -> Result<()> {
     let mut path_list: Vec<(String, Vec<String>)> = Vec::new();
     let mut tasks = Vec::new();
 
-    let tag_indices_map = { get_tags_map(&list, path) };
+    let tag_indices_map = { get_tags_map(&list, &path) };
     trace!("{:?}", tag_indices_map);
     for (k, v) in tag_indices_map.into_iter() {
+        let author = &list
+            .iter()
+            .find(|e| k == format!("{}/{}", &path, e.name))
+            .unwrap()
+            .commit
+            .author;
         for entry in v.iter().map(|&i| list.iter().nth(i).unwrap()) {
             let k = k.clone();
             let extra_info = format!("extra_info: '{:?}'", entry);
@@ -118,4 +125,27 @@ fn get_tags_map(svn_list: &SvnList, path: &str) -> HashMap<String, Vec<usize>> {
             }
         });
     tag_indices_map
+}
+
+fn remove_last_slash(input_str: &str) -> String {
+    if input_str.chars().last() == Some('/') {
+        input_str[..input_str.len() - 1].to_owned()
+    } else {
+        input_str.to_owned()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn check_last_slash_removed() {
+        assert_eq!(remove_last_slash("hello/there/"), "hello/there".to_owned());
+    }
+
+    #[test]
+    fn check_last_slash_removed_not() {
+        assert_eq!(remove_last_slash("hello/there"), "hello/there".to_owned());
+    }
 }
