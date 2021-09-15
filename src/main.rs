@@ -40,7 +40,7 @@ async fn process_tag(path: &str, start_instance: &Instant) -> Result<()> {
             let le = &list
                 .iter()
                 .find(|e| k == format!("{}/{}", &path, e.name))
-                .unwrap();
+                .unwrap_or_else(|| list.iter().next().unwrap());
             le.commit.author.to_owned()
         };
         for entry in v.iter().map(|&i| list.iter().nth(i).unwrap()) {
