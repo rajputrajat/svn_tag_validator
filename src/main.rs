@@ -17,14 +17,14 @@ async fn main() -> Result<()> {
 async fn process_tag(path: &str, start_instance: &Instant) -> Result<()> {
     println!("Inspecting SVN path: {:#?}", path);
     let svn = SvnCmd::new(
-        Credentials {
+        Some(Credentials {
             username: "svc-p-blsrobo".to_owned(),
             password: "Comewel@12345".to_owned(),
-        },
+        }),
         None,
-    )?;
+    );
     let path = remove_last_slash(path);
-    let list = svn.list(&path, true).await?;
+    let list = svn.list(&path, true)?;
     println!(
         "SvnList data received in '{}' msec.",
         start_instance.elapsed().as_millis()
@@ -39,11 +39,12 @@ async fn process_tag(path: &str, start_instance: &Instant) -> Result<()> {
         let author = {
             let le = &list
                 .iter()
+                .unwrap()
                 .find(|e| k == format!("{}/{}", &path, e.name))
-                .unwrap_or_else(|| list.iter().next().unwrap());
+                .unwrap_or_else(|| list.iter().unwrap().next().unwrap());
             le.commit.author.to_owned()
         };
-        for entry in v.iter().map(|&i| list.iter().nth(i).unwrap()) {
+        for entry in v.iter().map(|&i| list.iter().unwrap().nth(i).unwrap()) {
             let k = k.clone();
             let author = author.clone();
             let dir_path = format!("{}/{}", path, entry.name);
@@ -53,10 +54,7 @@ async fn process_tag(path: &str, start_instance: &Instant) -> Result<()> {
                 (
                     k,
                     author,
-                    svn_clone
-                        .raw_cmd(cmd)
-                        .await
-                        .unwrap_or_else(|_| "".to_owned()),
+                    svn_clone.raw_cmd(cmd).unwrap_or_else(|_| "".to_owned()),
                 )
             }));
         }
@@ -96,6 +94,7 @@ fn get_tags_map(svn_list: &SvnList, path: &str) -> HashMap<String, Vec<usize>> {
     let mut tag_indices_map: HashMap<String, Vec<usize>> = HashMap::new();
     svn_list
         .iter()
+        .unwrap()
         .enumerate()
         .filter_map(|(i, e)| {
             if e.kind == PathType::Dir {
@@ -107,7 +106,7 @@ fn get_tags_map(svn_list: &SvnList, path: &str) -> HashMap<String, Vec<usize>> {
         .filter(|(_i, p)| p.contains("tags"))
         .for_each(|(i, p)| {
             if let Some(valid_tag) = find_valid_tag_name(&p) {
-                tag_indices_map.entry(valid_tag).or_insert_with(Vec::new);
+                tag_indices_map.entry(valid_tag).or_default();
             }
             let keys = tag_indices_map
                 .keys()
