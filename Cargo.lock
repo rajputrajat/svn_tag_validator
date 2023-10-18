@@ -619,7 +619,7 @@ dependencies = [
 [[package]]
 name = "svn-cmd"
 version = "0.1.0"
-source = "git+https://github.com/rajputrajat/svn-cmd.git#a455ef7c615887de023098fbae5d892e841b4b48"
+source = "git+https://github.com/rajputrajat/svn-cmd.git#9f783a021d0160646ca207b78ccc51299239d069"
 dependencies = [
  "log",
  "regex",

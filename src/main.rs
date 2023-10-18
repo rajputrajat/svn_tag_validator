@@ -38,13 +38,13 @@ async fn process_tag(path: &str, start_instance: &Instant) -> Result<()> {
     for (k, v) in tag_indices_map.into_iter() {
         let author = {
             let le = &list
+                .list
                 .iter()
-                .unwrap()
                 .find(|e| k == format!("{}/{}", &path, e.name))
-                .unwrap_or_else(|| list.iter().unwrap().next().unwrap());
+                .unwrap_or_else(|| list.list.iter().next().unwrap());
             le.commit.author.to_owned()
         };
-        for entry in v.iter().map(|&i| list.iter().unwrap().nth(i).unwrap()) {
+        for entry in v.iter().map(|&i| list.list.get(i).unwrap()) {
             let k = k.clone();
             let author = author.clone();
             let dir_path = format!("{}/{}", path, entry.name);
@@ -93,8 +93,8 @@ async fn process_tag(path: &str, start_instance: &Instant) -> Result<()> {
 fn get_tags_map(svn_list: &SvnList, path: &str) -> HashMap<String, Vec<usize>> {
     let mut tag_indices_map: HashMap<String, Vec<usize>> = HashMap::new();
     svn_list
+        .list
         .iter()
-        .unwrap()
         .enumerate()
         .filter_map(|(i, e)| {
             if e.kind == PathType::Dir {
